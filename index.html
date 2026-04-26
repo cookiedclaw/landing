@@ -1,0 +1,1693 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>cookiedclaw — claude code, in your pocket</title>
+<link rel="icon" type="image/png" href="assets/cookie-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  /* ─────────────────────────────────────────────────────────────────
+     cookiedclaw — terminal-native landing
+     warm dark, phosphor-amber accent, mono everywhere
+     ───────────────────────────────────────────────────────────────── */
+  :root {
+    --bg:      oklch(0.16 0.012 60);     /* deep terminal */
+    --bg-2:    oklch(0.20 0.014 60);
+    --bg-3:    oklch(0.13 0.010 60);
+    --fg:      oklch(0.92 0.012 80);     /* warm bone text */
+    --fg-2:    oklch(0.74 0.012 75);
+    --fg-3:    oklch(0.56 0.012 70);
+    --rule:    oklch(0.30 0.014 60);
+    --amber:   oklch(0.82 0.16 78);      /* cookie amber */
+    --amber-2: oklch(0.70 0.16 70);
+    --rust:    oklch(0.66 0.20 38);      /* claw red */
+    --green:   oklch(0.78 0.16 145);
+    --red:     oklch(0.68 0.18 25);
+    --blue:    oklch(0.72 0.10 235);
+
+    --mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    /* phosphor scanlines + vignette */
+    background-image:
+      radial-gradient(ellipse at 50% -10%, oklch(0.22 0.014 60), transparent 70%),
+      repeating-linear-gradient(
+        to bottom,
+        oklch(0 0 0 / 0) 0px,
+        oklch(0 0 0 / 0) 2px,
+        oklch(0 0 0 / 0.18) 3px,
+        oklch(0 0 0 / 0) 4px
+      );
+    background-attachment: fixed;
+  }
+
+  ::selection { background: var(--amber); color: var(--bg); }
+
+  /* color helpers ------------------------------------------------------- */
+  .a   { color: var(--amber); }
+  .a2  { color: var(--amber-2); }
+  .r   { color: var(--rust); }
+  .g   { color: var(--green); }
+  .red { color: var(--red); }
+  .b   { color: var(--blue); }
+  .dim { color: var(--fg-3); }
+  .mid { color: var(--fg-2); }
+  .bold { font-weight: 700; }
+
+  /* ╭─ window chrome ────────────────────────────────────────────────── */
+  .window {
+    max-width: 1180px;
+    margin: 32px auto;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px oklch(0 0 0 / 0.4),
+      0 60px 140px -40px oklch(0 0 0 / 0.7);
+    /* overflow: hidden would kill sticky positioning on .roll-stage; we
+       trust child sections to mind the rounded corners themselves */
+    position: relative;
+  }
+  .titlebar { border-top-left-radius: 7px; border-top-right-radius: 7px; }
+  .footer   { border-bottom-left-radius: 7px; border-bottom-right-radius: 7px; }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--bg-3);
+    border-bottom: 1px solid var(--rule);
+    font-size: 11.5px;
+    color: var(--fg-3);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+  }
+  .lights {
+    display: flex; gap: 6px; margin-right: 10px;
+  }
+  .lights span {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: oklch(0.4 0.014 60);
+  }
+  .lights span:nth-child(1) { background: oklch(0.6 0.18 30); }
+  .lights span:nth-child(2) { background: oklch(0.78 0.16 80); }
+  .lights span:nth-child(3) { background: oklch(0.7 0.16 145); }
+  .titlebar .path {
+    flex: 1;
+    text-align: center;
+    color: var(--fg-2);
+    letter-spacing: 0.02em;
+  }
+  .titlebar .path .a { color: var(--amber); }
+  .titlebar .nav {
+    display: flex; gap: 18px;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+  .titlebar .nav a {
+    color: var(--fg-2);
+    text-decoration: none;
+    transition: color .2s;
+  }
+  .titlebar .nav a:hover { color: var(--amber); }
+
+  /* page padding -------------------------------------------------------- */
+  .pane { padding: 56px clamp(24px, 4vw, 64px); }
+
+  /* ╭─ HERO / boot ──────────────────────────────────────────────────── */
+  .hero { padding-top: 64px; padding-bottom: 80px; }
+  .hero .row {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 56px;
+    align-items: start;
+  }
+
+  .boot { font-size: 13px; line-height: 1.85; }
+  .boot .line { white-space: pre; opacity: 0; transform: translateY(2px); transition: opacity .25s, transform .25s; }
+  .boot .line.in { opacity: 1; transform: none; }
+  .boot .ok::before  { content: "[ "; color: var(--fg-3); }
+  .boot .ok::after   { content: " ]"; color: var(--fg-3); }
+  .boot .check       { color: var(--green); }
+  .boot .info        { color: var(--blue); }
+  .boot .warn        { color: var(--amber); }
+
+  .headline {
+    margin-top: 28px;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: clamp(28px, 4vw, 48px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    max-width: 22ch;
+  }
+  .headline em {
+    font-style: italic;
+    color: var(--amber);
+    font-weight: 500;
+  }
+  .sub {
+    margin-top: 22px;
+    color: var(--fg-2);
+    font-size: 14.5px;
+    line-height: 1.6;
+    max-width: 52ch;
+  }
+  .sub b { color: var(--fg); font-weight: 500; }
+
+  .sub-aside {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-left: 2px solid var(--amber);
+    background: oklch(from var(--amber) 0.20 c h / 0.18);
+    color: var(--fg-2);
+    font-size: 13px;
+    line-height: 1.55;
+    max-width: 52ch;
+  }
+  .sub-aside b { color: var(--amber); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .sub-aside .aside-tag {
+    display: block;
+    color: var(--fg-3);
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    margin-bottom: 6px;
+  }
+
+  /* mark / logo column */
+  .mark-col {
+    text-align: center;
+    padding: 18px 0;
+  }
+  .mark-frame {
+    display: inline-block;
+    padding: 24px;
+    border: 1px dashed var(--rule);
+    background:
+      radial-gradient(circle at 50% 50%, oklch(0.82 0.16 78 / 0.08), transparent 65%),
+      var(--bg);
+    position: relative;
+  }
+  .mark-frame::before {
+    content: "┌"; position: absolute; top: 4px; left: 6px; color: var(--amber); font-size: 12px;
+  }
+  .mark-frame::after {
+    content: "┘"; position: absolute; bottom: 4px; right: 6px; color: var(--amber); font-size: 12px;
+  }
+  .mark-frame img {
+    width: clamp(180px, 22vw, 280px);
+    height: auto;
+    display: block;
+    filter: drop-shadow(0 12px 30px oklch(0.66 0.20 38 / 0.25));
+    animation: bobbing 6s ease-in-out infinite;
+  }
+  @keyframes bobbing {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50%      { transform: translateY(-8px) rotate(1deg); }
+  }
+  .mark-meta {
+    margin-top: 18px;
+    font-size: 10.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    line-height: 1.9;
+  }
+  .mark-meta b { color: var(--amber); font-weight: 500; }
+
+  .hero .cta-row {
+    margin-top: 36px;
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 11px 18px;
+    background: transparent;
+    border: 1px solid var(--fg-2);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .btn:hover { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .btn.amber {
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+  .btn.amber:hover { background: var(--amber); color: var(--bg); }
+  .btn .arrow { transition: transform .2s; }
+  .btn:hover .arrow { transform: translateX(3px); }
+  .scroll-tip {
+    color: var(--fg-3);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    margin-left: auto;
+  }
+
+  /* ╭─ section heading style ────────────────────────────────────────── */
+  .h-rule {
+    display: flex; align-items: center; gap: 14px;
+    margin: 0 0 36px;
+    color: var(--fg-3);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .h-rule::before { content: "▌"; color: var(--amber); }
+  .h-rule .line { flex: 1; height: 1px; background: var(--rule); }
+  .h-rule .num { color: var(--amber); font-weight: 500; }
+
+  /* ╭─ ORIGIN ───────────────────────────────────────────────────────── */
+  .origin {
+    border-top: 1px solid var(--rule);
+    background: var(--bg-3);
+    padding: 96px clamp(24px, 4vw, 64px);
+  }
+  .origin .quote-block {
+    border-left: 2px solid var(--amber);
+    padding: 14px 0 14px 22px;
+    max-width: 880px;
+  }
+  .origin .quote-tag {
+    font-size: 11px;
+    color: var(--fg-3);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .origin .quote-tag::before { content: "$ cat origin.txt   "; color: var(--green); }
+  .origin blockquote {
+    margin: 0;
+    font-family: "IBM Plex Mono", var(--mono);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(22px, 2.6vw, 36px);
+    line-height: 1.35;
+    text-wrap: balance;
+    color: var(--fg);
+    max-width: 26ch;
+    letter-spacing: -0.005em;
+  }
+  .origin blockquote .punch {
+    font-style: normal;
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .origin .attrib {
+    margin-top: 22px;
+    color: var(--fg-3);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+  .origin .attrib::before { content: "— "; }
+
+  /* ╭─ ROLL: split-screen "Syndrome's wall" reveal ───────────────────── */
+  .roll {
+    height: 700vh;
+    min-height: 700vh;
+    position: relative;
+    border-top: 1px solid var(--rule);
+    background: var(--bg-3);
+  }
+  .roll-stage {
+    --titlebar-h: 42px;
+    --ticker-h: 32px;
+    position: sticky;
+    top: var(--titlebar-h);
+    height: calc(100vh - var(--titlebar-h) - var(--ticker-h));
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    overflow: hidden;
+  }
+
+  /* shared head bar across both panes */
+  .roll-head {
+    position: absolute;
+    top: 32px;
+    left: clamp(24px, 3vw, 48px);
+    right: clamp(24px, 3vw, 48px);
+    display: flex; align-items: center; gap: 14px;
+    color: var(--fg-3);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    z-index: 10;
+  }
+  .roll-head::before { content: "▌"; color: var(--amber); }
+  .roll-head .line { flex: 1; height: 1px; background: var(--rule); }
+  .roll-head .counter b { color: var(--fg); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .roll-head .counter i { color: var(--fg-3); font-style: normal; }
+
+  /* LEFT pane: dossier list — the names */
+  .roll-left {
+    position: relative;
+    border-right: 1px solid var(--rule);
+    padding: 56px clamp(20px, 2.4vw, 40px) 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow: hidden;
+  }
+  .roll-cmd {
+    color: var(--fg-3);
+    font-size: 11.5px;
+    margin-bottom: 18px;
+  }
+  .roll-cmd::before { content: "$ "; color: var(--green); }
+  .roll-cmd .a { color: var(--amber); }
+
+  .roll-stack {
+    position: relative;
+    height: clamp(80px, 11vw, 130px);
+  }
+  .roll-name {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: clamp(26px, 4vw, 56px);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--fg);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity .55s cubic-bezier(.2,.7,.2,1),
+                transform .55s cubic-bezier(.2,.7,.2,1),
+                color .55s;
+    white-space: nowrap;
+    will-change: opacity, transform;
+  }
+  .roll-name .arrow { color: var(--fg-3); font-size: 0.4em; }
+  .roll-name .label { position: relative; }
+  .roll-name.is-active { opacity: 1; transform: translateY(0); }
+  .roll-name.is-past   { opacity: 0; transform: translateY(-30px); }
+
+  .roll-name:not(.us) .label::after {
+    content: "";
+    position: absolute;
+    left: -4px; right: 100%;
+    top: 52%;
+    height: 5px;
+    background: var(--red);
+    transition: right .9s cubic-bezier(.2,.7,.2,1) .15s;
+  }
+  .roll-name:not(.us).is-active .label::after { right: -4px; }
+
+  .roll-name.us {
+    color: var(--amber);
+    font-style: italic;
+  }
+  .roll-name.us::before {
+    content: "▶";
+    color: var(--amber);
+    font-size: 0.5em;
+    margin-right: 4px;
+    animation: blink 1.1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* the dossier metadata strip below the name */
+  .roll-meta {
+    margin-top: 18px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--rule);
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 16px;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--fg-3);
+    max-width: 460px;
+  }
+  .roll-meta dt { color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.18em; }
+  .roll-meta dd { margin: 0; color: var(--fg-2); font-variant-numeric: tabular-nums; }
+  .roll-meta dd .a { color: var(--amber); }
+
+  /* running ledger of slain harnesses — fills bottom void of left pane */
+  .roll-ledger {
+    margin-top: auto;
+    padding-top: 16px;
+    font-family: var(--mono);
+  }
+  .ledger-head {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    margin-bottom: 10px;
+  }
+  .ledger-head::before { content: "▌"; color: var(--red); }
+  .roll-stage.is-us .ledger-head::before { color: var(--green); }
+  .ledger-head .line { flex: 1; height: 1px; background: var(--rule); }
+  .roll-ledger ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 28px;
+  }
+  .roll-ledger li {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: baseline;
+    font-size: 11px;
+    color: var(--fg-3);
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .35s, transform .35s, color .35s;
+  }
+  .roll-ledger li.is-killed {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .roll-ledger li .n {
+    color: var(--fg-3);
+    font-variant-numeric: tabular-nums;
+    font-size: 9.5px;
+    letter-spacing: 0.1em;
+  }
+  .roll-ledger li .name {
+    color: var(--fg-2);
+    position: relative;
+    white-space: nowrap;
+  }
+  .roll-ledger li.is-killed .name {
+    text-decoration: line-through;
+    text-decoration-color: var(--red);
+    text-decoration-thickness: 2px;
+  }
+  .roll-ledger li .why {
+    color: var(--red);
+    font-size: 9.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.75;
+  }
+
+  /* RIGHT pane: the giant verdict stamp */
+  .roll-right {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 24px clamp(20px, 2.4vw, 40px) 20px;
+    overflow: hidden;
+    gap: 18px;
+  }
+  .roll-right::before {
+    /* faint grid like a security wall */
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, oklch(0 0 0 / 0.4) 1px, transparent 1px),
+      linear-gradient(to bottom, oklch(0 0 0 / 0.4) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center;
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  .verdict {
+    position: relative;
+    text-align: center;
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    align-self: center;
+  }
+  .verdict .stamp-frame {
+    border: 4px solid var(--red);
+    padding: 16px 26px;
+    transform: rotate(-3deg);
+    position: relative;
+    transition: border-color .5s, background .5s;
+    background: oklch(0.20 0.06 25 / 0.25);
+    box-shadow: inset 0 0 0 2px var(--bg-3);
+  }
+  /* slam-in animation each time a new harness appears */
+  @keyframes stampSlam {
+    0%   { transform: rotate(-3deg) scale(1.45); opacity: 0; filter: blur(4px); }
+    55%  { transform: rotate(-5deg) scale(0.94); opacity: 1; filter: blur(0); }
+    72%  { transform: rotate(-2deg) scale(1.03); }
+    100% { transform: rotate(-3deg) scale(1);    opacity: 1; }
+  }
+  @keyframes stampSlamUs {
+    0%   { transform: rotate(2deg) scale(1.45); opacity: 0; filter: blur(4px); }
+    55%  { transform: rotate(4deg) scale(0.94); opacity: 1; filter: blur(0); }
+    72%  { transform: rotate(1deg) scale(1.03); }
+    100% { transform: rotate(2deg) scale(1);    opacity: 1; }
+  }
+  .verdict.slam .stamp-frame { animation: stampSlam .55s cubic-bezier(.2,.7,.2,1); }
+  .roll-stage.is-us .verdict.slam .stamp-frame { animation: stampSlamUs .55s cubic-bezier(.2,.7,.2,1); }
+
+  /* the stamp text gets its own glitch flicker each beat */
+  @keyframes stampFlicker {
+    0%   { opacity: 0; }
+    20%  { opacity: 1; }
+    30%  { opacity: 0.3; }
+    45%  { opacity: 1; }
+    60%  { opacity: 0.6; }
+    100% { opacity: 1; }
+  }
+  .verdict.slam .stamp-text { animation: stampFlicker .55s steps(8); }
+
+  /* perforated edges flash red->amber->red on each slam */
+  @keyframes perfFlash {
+    0%, 100% { filter: none; }
+    40%      { filter: brightness(1.6) saturate(1.4); }
+  }
+  .verdict.slam .stamp-frame::before,
+  .verdict.slam .stamp-frame::after { animation: perfFlash .55s ease-out; }
+  .verdict .stamp-frame::before,
+  .verdict .stamp-frame::after {
+    content: "";
+    position: absolute;
+    left: -10px; right: -10px;
+    height: 6px;
+    background:
+      repeating-linear-gradient(
+        90deg,
+        var(--red) 0 14px,
+        transparent 14px 24px
+      );
+  }
+  .verdict .stamp-frame::before { top: -10px; }
+  .verdict .stamp-frame::after  { bottom: -10px; }
+
+  .verdict .stamp-label {
+    font-size: 10px;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 8px;
+    transition: color .5s;
+  }
+  .verdict .stamp-text {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: clamp(28px, 4.2vw, 56px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    color: var(--red);
+    transition: color .5s;
+    text-transform: uppercase;
+  }
+  .verdict .stamp-sub {
+    margin-top: 10px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--fg-3);
+    text-transform: uppercase;
+  }
+
+  /* victory state when we land on cookiedclaw */
+  .roll-stage.is-us .verdict .stamp-frame {
+    border-color: var(--green);
+    background: oklch(0.30 0.10 145 / 0.18);
+    transform: rotate(2deg);
+  }
+  .roll-stage.is-us .verdict .stamp-frame::before,
+  .roll-stage.is-us .verdict .stamp-frame::after {
+    background: repeating-linear-gradient(90deg, var(--green) 0 14px, transparent 14px 24px);
+  }
+  .roll-stage.is-us .verdict .stamp-label,
+  .roll-stage.is-us .verdict .stamp-text { color: var(--green); }
+
+  /* the kill-counter — sits as a small chip in the top-right corner */
+  .kill-count {
+    position: relative;
+    align-self: flex-end;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--fg-3);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-align: right;
+    z-index: 5;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    background: var(--bg);
+  }
+  .kill-count::before {
+    content: "✗";
+    color: var(--red);
+    font-size: 14px;
+    transition: color .4s;
+  }
+  .roll-stage.is-us .kill-count::before { content: "✓"; color: var(--green); }
+  .kill-count .lbl { color: var(--fg-3); }
+  .kill-count b {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--red);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    transition: color .4s;
+  }
+  .kill-count i {
+    font-style: normal;
+    color: var(--fg-3);
+    font-size: 10px;
+  }
+  .roll-stage.is-us .kill-count b { color: var(--green); }
+
+  /* the receipt — pretend monthly invoice from anthropic */
+  .receipt {
+    margin-top: 4px;
+    font-family: var(--mono);
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    padding: 14px 16px 12px;
+    box-shadow: 0 12px 32px -16px oklch(0 0 0 / 0.6);
+    position: relative;
+    z-index: 3;
+  }
+  .receipt-head {
+    display: flex; align-items: baseline; gap: 12px;
+    font-size: 9.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    margin-bottom: 10px;
+  }
+  .receipt-head::before { content: "▌"; color: var(--amber); }
+  .receipt-head .line { flex: 1; height: 1px; background: var(--rule); }
+  .receipt-list {
+    list-style: none;
+    margin: 0 0 10px;
+    padding: 0;
+    display: grid;
+    gap: 3px;
+  }
+  .receipt-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 11px;
+    color: var(--fg-2);
+    padding: 1px 0;
+    transition: color .3s, opacity .3s;
+  }
+  .receipt-list li b {
+    font-weight: 500;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .receipt-list li.line-thru.is-struck {
+    color: var(--fg-3);
+    opacity: 0.5;
+  }
+  .receipt-list li.line-thru.is-struck span,
+  .receipt-list li.line-thru.is-struck b {
+    text-decoration: line-through;
+    text-decoration-color: var(--green);
+    text-decoration-thickness: 1.5px;
+  }
+  .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-top: 1px dashed var(--rule);
+    padding-top: 8px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+  .receipt-total b {
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    transition: color .4s;
+  }
+  .roll-stage.is-us .receipt-total b { color: var(--green); }
+
+  /* the argument bar — bottom row of the right grid, fades in only on us */
+  .roll-arg {
+    position: relative;
+    margin-top: auto;
+    border-top: 1px dashed var(--rule);
+    padding-top: 10px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity .8s cubic-bezier(.2,.7,.2,1) .4s,
+                transform .8s cubic-bezier(.2,.7,.2,1) .4s;
+    z-index: 4;
+    max-height: 26vh;
+    overflow: hidden;
+  }
+  .roll-stage.is-us .roll-arg { opacity: 1; transform: translateY(0); }
+  .roll-arg .lead {
+    color: var(--fg-3);
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .roll-arg .lead::before { content: "// "; color: var(--amber); }
+  .roll-arg p {
+    margin: 0 0 5px;
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: var(--fg-2);
+    max-width: 64ch;
+  }
+  .roll-arg p strong { color: var(--fg); font-weight: 500; }
+  .roll-arg p .a { color: var(--amber); }
+
+  @media (max-width: 900px) {
+    .roll { height: 650vh; min-height: 650vh; }
+    .roll-stage { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+    .roll-left { border-right: 0; border-bottom: 1px solid var(--rule); padding: 70px 24px 16px; }
+    .roll-right { padding: 60px 24px 16px; }
+    .roll-stack { height: clamp(80px, 14vw, 130px); }
+    .roll-name { font-size: clamp(28px, 7vw, 56px); }
+    .verdict .stamp-text { font-size: clamp(36px, 9vw, 62px); }
+    .kill-count { top: 16px; right: 16px; }
+    .roll-meta { display: none; }
+    .roll-arg p { font-size: 11.5px; }
+  }
+
+  /* ╭─ DEMO / phone ─────────────────────────────────────────────────── */
+  .demo {
+    border-top: 1px solid var(--rule);
+    padding: 96px clamp(24px, 4vw, 64px);
+  }
+  .demo .grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 80px;
+    align-items: center;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .demo h2 {
+    margin: 0 0 22px;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: clamp(26px, 3.4vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: var(--fg);
+    max-width: 16ch;
+  }
+  .demo h2 em { font-style: italic; color: var(--amber); }
+  .demo p {
+    margin: 0 0 14px;
+    color: var(--fg-2);
+    font-size: 14.5px;
+    line-height: 1.65;
+    max-width: 50ch;
+  }
+  .demo p strong { color: var(--fg); font-weight: 500; }
+  .demo .baseline {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--rule);
+    font-size: 13px;
+    color: var(--fg-3);
+    line-height: 1.7;
+    max-width: 56ch;
+  }
+  .demo .baseline b { color: var(--fg); font-weight: 500; }
+  .demo .baseline em { color: var(--amber); font-style: italic; }
+
+  .phone {
+    width: 300px;
+    height: 590px;
+    background: oklch(0.10 0.008 60);
+    border-radius: 38px;
+    border: 1px solid oklch(0.30 0.012 60);
+    box-shadow:
+      0 60px 120px -40px oklch(0 0 0 / 0.6),
+      inset 0 0 0 5px oklch(0.06 0.006 60);
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    justify-self: center;
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    width: 86px; height: 20px;
+    background: oklch(0.04 0 0);
+    border-radius: 14px;
+    z-index: 5;
+  }
+  .phone .screen {
+    width: 100%; height: 100%;
+    background: oklch(0.12 0.008 60);
+    border-radius: 26px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .phone .tg-head {
+    padding: 46px 16px 11px;
+    border-bottom: 1px solid oklch(0.20 0.01 60);
+    display: flex; align-items: center; gap: 10px;
+    font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+  }
+  .phone .tg-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: oklch(0.92 0.06 80);
+    overflow: hidden;
+  }
+  .phone .tg-avatar img {
+    width: 100%; height: 100%; object-fit: cover;
+    transform: scale(1.15);
+  }
+  .phone .tg-name {
+    font-size: 13.5px; font-weight: 600; color: oklch(0.96 0.005 80);
+    letter-spacing: -0.01em;
+  }
+  .phone .tg-status {
+    font-size: 10px; color: var(--green);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .phone .tg-status::before {
+    content: ""; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--green);
+  }
+  .phone .feed {
+    flex: 1;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+  }
+  .phone .msg {
+    max-width: 80%;
+    padding: 7px 10px;
+    border-radius: 13px;
+    opacity: 0; transform: translateY(6px);
+    animation: msgIn .55s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+  @keyframes msgIn { to { opacity: 1; transform: none; } }
+  .phone .msg.me {
+    align-self: flex-end;
+    background: oklch(0.42 0.12 250);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .phone .msg.bot {
+    align-self: flex-start;
+    background: oklch(0.20 0.012 60);
+    color: oklch(0.92 0.005 80);
+    border-bottom-left-radius: 4px;
+  }
+  .phone .msg.tool {
+    align-self: flex-start;
+    background: transparent;
+    border: 1px dashed oklch(0.32 0.012 60);
+    color: var(--fg-3);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    padding: 6px 9px;
+    border-radius: 5px;
+    width: 88%;
+    max-width: 88%;
+  }
+  .phone .msg.tool .pulse {
+    display: inline-block;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--amber);
+    margin-right: 6px;
+    animation: pulse 1.4s infinite;
+    vertical-align: middle;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+  .phone .input {
+    border-top: 1px solid oklch(0.20 0.01 60);
+    padding: 9px 13px;
+    display: flex; align-items: center; gap: 7px;
+    color: var(--fg-3);
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 11.5px;
+  }
+  .phone .input .slash { color: var(--amber); font-family: var(--mono); }
+
+  /* ╭─ INSTALL ──────────────────────────────────────────────────────── */
+  .install {
+    border-top: 1px solid var(--rule);
+    padding: 96px clamp(24px, 4vw, 64px);
+    background: var(--bg-3);
+  }
+  .install .wrap { max-width: 980px; margin: 0 auto; }
+  .install h2 {
+    margin: 0 0 36px;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: clamp(26px, 3.4vw, 42px);
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: var(--fg);
+    max-width: 18ch;
+  }
+  .install h2 em { font-style: italic; color: var(--amber); }
+
+  .term {
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -30px oklch(0 0 0 / 0.5);
+  }
+  .term .term-head {
+    background: var(--bg-3);
+    border-bottom: 1px solid var(--rule);
+    padding: 9px 12px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px;
+    color: var(--fg-3);
+  }
+  .term .term-head .lights {
+    margin: 0;
+  }
+  .term .term-head .label {
+    margin-left: 10px;
+    letter-spacing: 0.06em;
+  }
+  .term .body {
+    padding: 22px 24px 26px;
+    font-size: 13.5px;
+    line-height: 2;
+  }
+  .term .ln { display: flex; gap: 12px; opacity: 0; transform: translateY(4px); transition: opacity .5s, transform .5s; }
+  .term.in .ln:nth-child(1) { transition-delay: .1s; opacity: 1; transform: none; }
+  .term.in .ln:nth-child(2) { transition-delay: .8s; opacity: 1; transform: none; }
+  .term.in .ln:nth-child(3) { transition-delay: 1.5s; opacity: 1; transform: none; }
+  .term.in .ln:nth-child(4) { transition-delay: 2.2s; opacity: 1; transform: none; }
+  .term .prompt { color: var(--green); user-select: none; }
+  .term .cmd { color: var(--fg); }
+  .term .cmd .arg { color: var(--amber); }
+  .term .ok {
+    color: var(--fg-3);
+    font-style: italic;
+    font-size: 12.5px;
+    padding-left: 24px;
+  }
+  .term .ok::before { content: "↳ "; color: var(--amber); font-style: normal; }
+
+  .copyrow {
+    margin-top: 22px;
+    display: flex; align-items: center; gap: 14px;
+    color: var(--fg-3);
+    font-size: 12px;
+  }
+  .copybtn {
+    cursor: pointer;
+    background: transparent;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    padding: 8px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: background .2s, color .2s;
+  }
+  .copybtn:hover { background: var(--amber); color: var(--bg); }
+  .copybtn.copied { background: var(--green); color: var(--bg); border-color: var(--green); }
+
+  /* ╭─ FOOTER / signature ───────────────────────────────────────────── */
+  .footer {
+    border-top: 1px solid var(--rule);
+    padding: 64px clamp(24px, 4vw, 64px) 48px;
+    text-align: center;
+  }
+  .footer .sig {
+    width: 64px; height: 64px;
+    margin: 0 auto 22px;
+    display: block;
+    animation: bobbing 5s ease-in-out infinite;
+  }
+  .footer p {
+    color: var(--fg-2);
+    font-size: 14.5px;
+    line-height: 1.6;
+    max-width: 38ch;
+    margin: 0 auto 28px;
+  }
+  .footer .cta {
+    display: inline-flex;
+    align-items: center; gap: 10px;
+    padding: 12px 22px;
+    border: 1px solid var(--amber);
+    color: var(--amber);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    transition: background .2s, color .2s;
+  }
+  .footer .cta:hover { background: var(--amber); color: var(--bg); }
+  .footer .colophon {
+    margin-top: 60px;
+    padding-top: 22px;
+    border-top: 1px solid var(--rule);
+    color: var(--fg-3);
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* persistent floating progress (mono ticker) -------------------------- */
+  .ticker {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 80;
+    background: var(--bg-3);
+    border-top: 1px solid var(--rule);
+    padding: 8px 16px;
+    display: flex; gap: 24px; align-items: center;
+    font-size: 10.5px;
+    color: var(--fg-3);
+    letter-spacing: 0.1em;
+    backdrop-filter: blur(6px);
+  }
+  .ticker .seg { display: inline-flex; align-items: center; gap: 8px; }
+  .ticker .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 1.6s infinite;
+  }
+  .ticker .bar {
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+    position: relative;
+    margin: 0 8px;
+  }
+  .ticker .bar > span {
+    position: absolute; top: -1px; left: 0;
+    height: 3px; width: 0;
+    background: var(--amber);
+    transition: width .15s linear;
+  }
+  .ticker .stamp { color: var(--fg-2); font-variant-numeric: tabular-nums; }
+
+  /* mobile ------------------------------------------------------------- */
+  @media (max-width: 900px) {
+    .hero .row { grid-template-columns: 1fr; gap: 36px; }
+    .demo .grid { grid-template-columns: 1fr; gap: 50px; }
+    .titlebar .nav { display: none; }
+    .titlebar .path { font-size: 10.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="window">
+
+  <!-- titlebar -->
+  <div class="titlebar">
+    <div class="lights"><span></span><span></span><span></span></div>
+    <div class="path">~/<span class="a">cookiedclaw</span> — claude code, in your pocket</div>
+    <div class="nav">
+      <a href="#install">install</a>
+      <a href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">github ↗</a>
+    </div>
+  </div>
+
+  <!-- ╭─ HERO ───────────────────────────────────────────────── -->
+  <section class="pane hero" data-screen-label="01 Hero">
+    <div class="row">
+      <div>
+        <div class="boot" id="boot">
+          <div class="line"><span class="ok"><span class="check">ok</span></span> plugin <span class="a">cookiedclaw@cookiedclaw</span> loaded            <span class="dim">··············  dev channel</span></div>
+          <div class="line"><span class="ok"><span class="check">ok</span></span> mcp server <span class="a">telegram-channel</span> on stdio        <span class="dim">··············  bun · 14 modules</span></div>
+          <div class="line"><span class="ok"><span class="check">ok</span></span> grammy bot @cookiedclaw_bot polling           <span class="dim">··············  long-poll</span></div>
+          <div class="line"><span class="ok"><span class="check">ok</span></span> tool-progress hook bound                      <span class="dim">··············  localhost:53117</span></div>
+          <div class="line"><span class="ok"><span class="info">i</span></span>  paired users · 1                              <span class="dim">··············  you only</span></div>
+          <div class="line"><span class="ok"><span class="info">i</span></span>  billing path · <span class="a">claude.ai max</span>                  <span class="dim">··············  no extra api calls</span></div>
+          <div class="line">&nbsp;</div>
+          <div class="line"><span class="g">$</span> waiting on telegram dm<span class="cur" id="cur">▌</span></div>
+        </div>
+
+        <h1 class="headline">
+          OpenClaw, but Claude&nbsp;Code <em>is the harness.</em>
+        </h1>
+
+        <p class="sub">
+          A Telegram-resident agent that lives <b>inside</b> your Claude&nbsp;Code session
+          over a custom MCP channel. Your tokens, your Max plan, your tools — now
+          reachable from a chat thread.
+        </p>
+
+        <p class="sub-aside">
+          <span class="aside-tag">// note from the author</span>
+          OpenClaw burned <b>$100 a week</b> on my Anthropic bill before I switched.
+          cookiedclaw runs on the Max subscription you already pay for. That's the whole story.
+        </p>
+
+        <div class="cta-row">
+          <a class="btn amber" href="#install">
+            <span>$ install</span><span class="arrow">→</span>
+          </a>
+          <a class="btn" href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">
+            <span>github ↗</span>
+          </a>
+          <span class="scroll-tip">scroll ↓</span>
+        </div>
+      </div>
+
+      <div class="mark-col">
+        <div class="mark-frame">
+          <img src="assets/cookie-mark.png" alt="cookiedclaw — a chocolate-chip cookie with little orange claws" />
+        </div>
+        <div class="mark-meta">
+          <span class="dim">cookiedclaw</span><br/>
+          <b>v0.1 · beta</b> · <span class="dim">apr 2026</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╭─ ORIGIN ─────────────────────────────────────────────── -->
+  <section class="origin" data-screen-label="02 Origin">
+    <div class="h-rule"><span class="num">02</span><span>origin</span><span class="line"></span></div>
+    <div class="quote-block">
+      <div class="quote-tag"></div>
+      <blockquote>
+        what stops me from using claude&nbsp;code instead of openclaw?
+        <span class="punch">UX.</span><br/>
+        cookiedclaw is the UX&nbsp;layer.
+      </blockquote>
+      <div class="attrib">timur, on a weekend</div>
+    </div>
+  </section>
+
+  <!-- ╭─ ROLL: split-screen Syndrome reveal ─────────────────── -->
+  <section class="roll" id="roll" data-screen-label="03 Roll">
+    <div class="roll-stage" id="rollStage">
+
+      <!-- LEFT — the names, dossier-style -->
+      <div class="roll-left">
+        <div class="roll-head">
+          <span>03 / harnesses</span>
+          <span class="line"></span>
+          <span class="counter"><b id="rollNum">01</b> <i>/12</i></span>
+        </div>
+
+        <div class="roll-cmd">
+          ls <span class="a">/usr/local/bin/</span> | grep -i claw
+        </div>
+
+        <div class="roll-stack" id="rollStack">
+          <!-- real names found in the wild + the four originally specified -->
+          <div class="roll-name" data-i="0"><span class="arrow">▸</span><span class="label">OpenClaw</span></div>
+          <div class="roll-name" data-i="1"><span class="arrow">▸</span><span class="label">NanoClaw</span></div>
+          <div class="roll-name" data-i="2"><span class="arrow">▸</span><span class="label">NanoBot</span></div>
+          <div class="roll-name" data-i="3"><span class="arrow">▸</span><span class="label">ClaudeClaw</span></div>
+          <div class="roll-name" data-i="4"><span class="arrow">▸</span><span class="label">OpenClaude</span></div>
+          <div class="roll-name" data-i="5"><span class="arrow">▸</span><span class="label">open-claude</span></div>
+          <div class="roll-name" data-i="6"><span class="arrow">▸</span><span class="label">Claw&nbsp;Code</span></div>
+          <div class="roll-name" data-i="7"><span class="arrow">▸</span><span class="label">OpenCode</span></div>
+          <div class="roll-name" data-i="8"><span class="arrow">▸</span><span class="label">CliDeck</span></div>
+          <div class="roll-name" data-i="9"><span class="arrow">▸</span><span class="label">claude-flow</span></div>
+          <div class="roll-name" data-i="10"><span class="arrow">▸</span><span class="label">AgentsMesh</span></div>
+          <div class="roll-name us" data-i="11"><span class="label">cookiedclaw</span></div>
+        </div>
+
+        <dl class="roll-meta" id="rollMeta">
+          <dt>vendor</dt>     <dd id="metaVendor">third-party</dd>
+          <dt>runs</dt>       <dd id="metaRuns">on its own keys</dd>
+          <dt>billing path</dt><dd id="metaBilling">separate invoice</dd>
+        </dl>
+
+        <!-- the running ledger of slain harnesses, fills the bottom void -->
+        <div class="roll-ledger" id="rollLedger">
+          <div class="ledger-head">
+            <span>terminated · ledger</span>
+            <span class="line"></span>
+          </div>
+          <ul id="ledgerList">
+            <li data-i="0"><span class="n">01</span><span class="name">OpenClaw</span><span class="why">extra usage</span></li>
+            <li data-i="1"><span class="n">02</span><span class="name">NanoClaw</span><span class="why">extra usage</span></li>
+            <li data-i="2"><span class="n">03</span><span class="name">NanoBot</span><span class="why">extra usage</span></li>
+            <li data-i="3"><span class="n">04</span><span class="name">ClaudeClaw</span><span class="why">extra usage</span></li>
+            <li data-i="4"><span class="n">05</span><span class="name">OpenClaude</span><span class="why">extra usage</span></li>
+            <li data-i="5"><span class="n">06</span><span class="name">open-claude</span><span class="why">extra usage</span></li>
+            <li data-i="6"><span class="n">07</span><span class="name">Claw&nbsp;Code</span><span class="why">extra usage</span></li>
+            <li data-i="7"><span class="n">08</span><span class="name">OpenCode</span><span class="why">extra usage</span></li>
+            <li data-i="8"><span class="n">09</span><span class="name">CliDeck</span><span class="why">extra usage</span></li>
+            <li data-i="9"><span class="n">10</span><span class="name">claude-flow</span><span class="why">extra usage</span></li>
+            <li data-i="10"><span class="n">11</span><span class="name">AgentsMesh</span><span class="why">extra usage</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT — the giant verdict stamp -->
+      <div class="roll-right">
+        <div class="kill-count">
+          <span class="lbl">terminated</span>
+          <b id="killCount">00</b><i>/11</i>
+        </div>
+
+        <div class="verdict" id="verdict">
+          <div class="stamp-frame">
+            <div class="stamp-label" id="stampLabel">verdict</div>
+            <div class="stamp-text" id="stampText">extra usage</div>
+          </div>
+          <div class="stamp-sub" id="stampSub">billed outside your plan</div>
+        </div>
+
+        <!-- the receipt — fills the bottom void of the right pane -->
+        <div class="receipt" id="receipt">
+          <div class="receipt-head">
+            <span>anthropic · monthly invoice</span>
+            <span class="line"></span>
+            <span id="receiptDate">apr&nbsp;26</span>
+          </div>
+          <ul class="receipt-list" id="receiptList">
+            <li><span>your max plan</span><b>$200.00</b></li>
+            <li class="line-thru" data-i="0"><span>+ openclaw via api</span><b>$412.00</b></li>
+            <li class="line-thru" data-i="1"><span>+ nanoclaw via api</span><b>$118.40</b></li>
+            <li class="line-thru" data-i="2"><span>+ claudeclaw via api</span><b>$287.60</b></li>
+            <li class="line-thru" data-i="3"><span>+ <span id="receiptMore">8 more harnesses</span></span><b id="receiptRest">$496.00</b></li>
+          </ul>
+          <div class="receipt-total" id="receiptTotal">
+            <span>total this month</span>
+            <b id="receiptSum">$200.00</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╭─ DEMO ───────────────────────────────────────────────── -->
+  <section class="demo" data-screen-label="04 Demo">
+    <div class="grid">
+      <div>
+        <div class="h-rule"><span class="num">04</span><span>how it feels</span><span class="line"></span></div>
+        <h2>Your VPS, <em>texting you back.</em></h2>
+        <p>
+          Run Claude&nbsp;Code on a server, a home box, a forgotten mac mini —
+          then drive it from the train, the kitchen, anywhere a Telegram thread
+          reaches.
+        </p>
+        <p>
+          The agent is <strong>resident</strong> in the chat. Not polled, not relayed —
+          there.
+        </p>
+        <div class="baseline">
+          where the official <b>telegram@claude-plugins-official</b> plugin
+          gives you a thread, cookiedclaw gives you a workspace —
+          <em>identity files, a setup wizard, an auto-mirrored slash menu, and
+          live tool progress streaming back as it runs.</em>
+        </div>
+      </div>
+
+      <div class="phone" aria-hidden="true">
+        <div class="screen">
+          <div class="tg-head">
+            <div class="tg-avatar">
+              <img src="assets/cookie-mark.png" alt="" />
+            </div>
+            <div>
+              <div class="tg-name">cookiedclaw</div>
+              <div class="tg-status">resident · idle</div>
+            </div>
+          </div>
+          <div class="feed" id="feed"></div>
+          <div class="input">
+            <span class="slash">/</span>
+            <span>type a command…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╭─ INSTALL ────────────────────────────────────────────── -->
+  <section class="install" id="install" data-screen-label="05 Install">
+    <div class="wrap">
+      <div class="h-rule"><span class="num">05</span><span>ninety seconds</span><span class="line"></span></div>
+      <h2>If you have Claude&nbsp;Code, <em>you have this.</em></h2>
+
+      <div class="term" id="term">
+        <div class="term-head">
+          <div class="lights"><span></span><span></span><span></span></div>
+          <span class="label">~/$ cookiedclaw setup</span>
+        </div>
+        <div class="body">
+          <div class="ln">
+            <span class="prompt">$</span>
+            <span class="cmd">claude plugin marketplace add <span class="arg">cookiedclaw/cookiedclaw</span></span>
+          </div>
+          <div class="ln">
+            <span class="prompt">$</span>
+            <span class="cmd">claude plugin install <span class="arg">cookiedclaw@cookiedclaw</span></span>
+          </div>
+          <div class="ln">
+            <span class="prompt">$</span>
+            <span class="cmd">mkdir -p <span class="arg">~/cookiedclaw</span> &amp;&amp; cd <span class="arg">~/cookiedclaw</span></span>
+          </div>
+          <div class="ln">
+            <span class="prompt">$</span>
+            <span class="cmd">claude --dangerously-load-development-channels <span class="arg">plugin:cookiedclaw@cookiedclaw</span></span>
+          </div>
+          <div class="ln">
+            <span class="prompt">&gt;</span>
+            <span class="cmd">/cookiedclaw:setup</span>
+          </div>
+          <div class="ln"><span class="ok">wizard runs · botfather token · you'll be texting your repo in ~90 seconds</span></div>
+        </div>
+      </div>
+
+      <div class="copyrow">
+        <button class="copybtn" id="copyBtn" type="button">copy all five</button>
+        <span>or read the source — it's small.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╭─ FOOTER ─────────────────────────────────────────────── -->
+  <section class="footer" data-screen-label="06 Close">
+    <img class="sig" src="assets/cookie-mark.png" alt="" />
+    <p>
+      That's the whole pitch. A plugin. A chat thread. Your own subscription,
+      doing what you already pay it to do.
+    </p>
+    <a class="cta" href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">
+      <span>github.com/cookiedclaw/cookiedclaw</span>
+      <span>↗</span>
+    </a>
+    <div class="colophon">
+      <span>cookiedclaw · mmxxvi</span>
+      <span>set in jetbrains mono</span>
+      <span>made in bishkek · 🍪</span>
+    </div>
+  </section>
+
+</div>
+
+<!-- bottom ticker -->
+<div class="ticker">
+  <span class="seg"><span class="dot"></span><span>session · live</span></span>
+  <span class="seg"><span>uptime <span class="stamp" id="upt">00:00:00</span></span></span>
+  <span class="bar"><span id="barfill"></span></span>
+  <span class="seg"><span class="stamp" id="scrollPct">0%</span></span>
+</div>
+
+<script>
+  /* boot reveal */
+  (function () {
+    const lines = document.querySelectorAll('#boot .line');
+    lines.forEach((l, i) => {
+      setTimeout(() => l.classList.add('in'), 120 + i * 220);
+    });
+    /* blinking cursor on last line */
+    const cur = document.getElementById('cur');
+    if (cur) setInterval(() => cur.style.opacity = cur.style.opacity === '0' ? '1' : '0', 530);
+  })();
+
+  /* uptime stamp */
+  (function () {
+    const upt = document.getElementById('upt');
+    const start = Date.now();
+    function tick() {
+      const t = Math.floor((Date.now() - start) / 1000);
+      const h = String(Math.floor(t / 3600)).padStart(2, '0');
+      const m = String(Math.floor(t / 60) % 60).padStart(2, '0');
+      const s = String(t % 60).padStart(2, '0');
+      upt.textContent = `${h}:${m}:${s}`;
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+
+  /* scroll % + bar */
+  (function () {
+    const fill = document.getElementById('barfill');
+    const pct = document.getElementById('scrollPct');
+    function on() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const p = Math.max(0, Math.min(1, window.scrollY / max));
+      fill.style.width = (p * 100).toFixed(1) + '%';
+      pct.textContent = (p * 100).toFixed(0) + '%';
+    }
+    window.addEventListener('scroll', on, { passive: true });
+    on();
+  })();
+
+  /* roll: split-screen scroll-driven Syndrome reveal */
+  (function () {
+    const sec = document.getElementById('roll');
+    if (!sec) return;
+    const stage = document.getElementById('rollStage');
+    const verdict = document.getElementById('verdict');
+    const names = Array.from(sec.querySelectorAll('.roll-name'));
+    const ledgerItems = Array.from(sec.querySelectorAll('#ledgerList li'));
+    // receipt: items 0..2 are individual harnesses; item 3 is the aggregate "more" row
+    const receiptItems = Array.from(sec.querySelectorAll('#receiptList li.line-thru'));
+    const receiptMoreLabel = document.getElementById('receiptMore');
+    const receiptRestEl = document.getElementById('receiptRest');
+    const receiptSum = document.getElementById('receiptSum');
+    // individual amounts for items 0..2  — based on real openclaw burn ($100/week ≈ $400/mo)
+    const individualAmounts = [412.00, 118.40, 287.60];
+    // aggregate amount for the "8 more" row — eight harnesses, scaled
+    const aggregateBaseAmount = 496.00;
+    const aggregateBaseCount = 8;
+    const baseAmount = 200;
+    const counter = document.getElementById('rollNum');
+    const stampLabel = document.getElementById('stampLabel');
+    const stampText = document.getElementById('stampText');
+    const stampSub = document.getElementById('stampSub');
+    const killCount = document.getElementById('killCount');
+    const metaVendor = document.getElementById('metaVendor');
+    const metaRuns = document.getElementById('metaRuns');
+    const metaBilling = document.getElementById('metaBilling');
+    const N = names.length;
+
+    // per-row dossier data
+    const dossier = [
+      { vendor: 'github · openclaw',          runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'npm · @nano/claw',           runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'self-hosted · nanobot',      runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'github · claudeclaw',        runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'github · openclaude',        runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'github · open-claude',      runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'web · claw code',            runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'opencode.ai',                runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'cli-deck',                   runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'github · claude-flow',       runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'github · agents-mesh',       runs: 'on its own keys',     billing: 'separate invoice' },
+      { vendor: 'cookiedclaw',                runs: 'inside claude code',  billing: 'your plan ✓' },
+    ];
+
+    let active = -1;
+    function update() {
+      const rect = sec.getBoundingClientRect();
+      const total = sec.offsetHeight - window.innerHeight;
+      const scrolled = -rect.top;
+      const t = Math.max(0, Math.min(0.9999, scrolled / total));
+      const lastDwell = 0.16;
+      let idx;
+      if (t > 1 - lastDwell) idx = N - 1;
+      else {
+        idx = Math.floor((t / (1 - lastDwell)) * N);
+        idx = Math.max(0, Math.min(N - 1, idx));
+      }
+      if (idx !== active) {
+        active = idx;
+        names.forEach((el, i) => {
+          el.classList.toggle('is-active', i === idx);
+          el.classList.toggle('is-past', i < idx);
+        });
+        counter.textContent = String(idx + 1).padStart(2, '0');
+        const isUs = idx === N - 1;
+        stage.classList.toggle('is-us', isUs);
+
+        // re-trigger the stamp slam animation each beat
+        verdict.classList.remove('slam');
+        // force reflow so the animation restarts
+        void verdict.offsetWidth;
+        verdict.classList.add('slam');
+
+        // verdict stamp
+        if (isUs) {
+          stampLabel.textContent = 'verdict';
+          stampText.textContent = 'your plan';
+          stampSub.textContent = 'runs inside claude code · no extra bill';
+        } else {
+          stampLabel.textContent = 'verdict';
+          stampText.textContent = 'extra usage';
+          stampSub.textContent = 'billed outside your plan';
+        }
+
+        // kill counter — counts terminated competitors only
+        const killed = isUs ? (N - 1) : idx;
+        killCount.textContent = String(killed).padStart(2, '0');
+
+        // ledger: mark items 0..killed-1 as killed (when on competitor idx, items 0..idx are visible/killed including current)
+        ledgerItems.forEach((li, i) => {
+          // include current competitor as "killed" too
+          const limit = isUs ? (N - 1) : (idx + 1);
+          li.classList.toggle('is-killed', i < limit);
+        });
+
+        // receipt:
+        //   - items 0..2 individually strike when idx > i (i.e. we've passed that competitor)
+        //   - item 3 (aggregate) strikes when idx >= 11 (cookiedclaw); its count/amount decreases as idx > 3..10
+        // total = baseAmount + sum of unstruck amounts
+        let total = baseAmount;
+        // individual rows
+        for (let i = 0; i < 3; i++) {
+          const struck = isUs ? true : (idx > i);
+          receiptItems[i].classList.toggle('is-struck', struck);
+          if (!struck) total += individualAmounts[i];
+        }
+        // aggregate "more harnesses" row
+        // when idx is at 3..10, those have been "killed" and removed from the aggregate count
+        // killedFromAggregate = max(0, min(idx - 3, 8))  — counts competitors 3..10 we've passed
+        const killedFromAggregate = isUs ? aggregateBaseCount : Math.max(0, Math.min(idx - 3, aggregateBaseCount));
+        const remainingCount = aggregateBaseCount - killedFromAggregate;
+        const remainingAggregate = aggregateBaseAmount * (remainingCount / aggregateBaseCount);
+        if (remainingCount === 0) {
+          receiptItems[3].classList.add('is-struck');
+          receiptMoreLabel.textContent = '8 more harnesses';
+          receiptRestEl.innerHTML = '$496.00';
+        } else {
+          receiptItems[3].classList.remove('is-struck');
+          receiptMoreLabel.textContent = remainingCount + ' more harness' + (remainingCount === 1 ? '' : 'es');
+          receiptRestEl.innerHTML = '$' + remainingAggregate.toFixed(2);
+          total += remainingAggregate;
+        }
+        receiptSum.textContent = '$' + total.toFixed(2);
+
+        // dossier
+        const d = dossier[idx];
+        metaVendor.textContent = d.vendor;
+        metaRuns.textContent = d.runs;
+        metaBilling.textContent = d.billing;
+      }
+    }
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+  /* terminal sequential reveal on view */
+  (function () {
+    const t = document.getElementById('term');
+    if (!t) return;
+    const io = new IntersectionObserver(es => {
+      es.forEach(e => { if (e.isIntersecting) { t.classList.add('in'); io.disconnect(); } });
+    }, { threshold: 0.4 });
+    io.observe(t);
+  })();
+
+  /* telegram demo loop */
+  (function () {
+    const feed = document.getElementById('feed');
+    if (!feed) return;
+    const script = [
+      { who: 'me',   text: '/run pytest -k auth' },
+      { who: 'tool', text: '<span class="pulse"></span>Bash · running pytest…' },
+      { who: 'tool', text: '<span class="pulse"></span>Read · tests/auth_test.py' },
+      { who: 'bot',  text: '3 passed, 1 flake on token refresh. retry the flake or open it?' },
+      { who: 'me',   text: 'open it' },
+      { who: 'tool', text: '<span class="pulse"></span>Edit · auth/refresh.py' },
+      { who: 'bot',  text: 'pushed a fix to a branch. /diff to review, /merge to ship 🍪' },
+    ];
+    let started = false;
+    const obs = new IntersectionObserver(es => {
+      es.forEach(e => { if (e.isIntersecting && !started) { started = true; play(); } });
+    }, { threshold: 0.3 });
+    obs.observe(feed);
+
+    function play() {
+      feed.innerHTML = '';
+      let t = 0;
+      script.forEach(m => {
+        const delay = (m.who === 'tool') ? 700 : 1100;
+        t += delay;
+        setTimeout(() => {
+          const el = document.createElement('div');
+          el.className = 'msg ' + m.who;
+          el.innerHTML = m.text;
+          feed.appendChild(el);
+          while (feed.children.length > 6) feed.removeChild(feed.firstChild);
+        }, t);
+      });
+      setTimeout(play, t + 4000);
+    }
+  })();
+
+  /* copy install */
+  (function () {
+    const btn = document.getElementById('copyBtn');
+    if (!btn) return;
+    const cmds =
+      'claude plugin marketplace add cookiedclaw/cookiedclaw\n' +
+      'claude plugin install cookiedclaw@cookiedclaw\n' +
+      'mkdir -p ~/cookiedclaw && cd ~/cookiedclaw\n' +
+      'claude --dangerously-load-development-channels plugin:cookiedclaw@cookiedclaw\n' +
+      '/cookiedclaw:setup\n';
+    btn.addEventListener('click', () => {
+      navigator.clipboard?.writeText(cmds).then(() => {
+        const old = btn.textContent;
+        btn.textContent = 'copied ✓';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = old;
+          btn.classList.remove('copied');
+        }, 1800);
+      });
+    });
+  })();
+</script>
+
+</body>
+</html>
