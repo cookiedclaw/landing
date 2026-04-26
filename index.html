@@ -803,8 +803,6 @@
     .roll-name { font-size: clamp(28px, 7vw, 56px); }
     .verdict .stamp-text { font-size: clamp(36px, 9vw, 62px); }
     .kill-count { top: 16px; right: 16px; }
-    .roll-meta { display: none; }
-    .roll-arg p { font-size: 11.5px; }
   }
 
   /* ╭─ DEMO / phone ─────────────────────────────────────────────────── */
@@ -1142,6 +1140,144 @@
     .demo .grid { grid-template-columns: 1fr; gap: 50px; }
     .titlebar .nav { display: none; }
     .titlebar .path { font-size: 10.5px; }
+  }
+
+  /* phone ─ tight layout ─────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    /* full-bleed window — drop the floating-card chrome */
+    .window {
+      margin: 0;
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
+      box-shadow: none;
+      max-width: 100%;
+    }
+    .titlebar { border-radius: 0; }
+    .footer   { border-radius: 0; }
+
+    /* titlebar — collapse to bare-bones */
+    .titlebar { padding: 8px 12px; gap: 8px; }
+    .titlebar .lights span { width: 9px; height: 9px; }
+    .titlebar .path {
+      font-size: 9.5px;
+      letter-spacing: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: left;
+    }
+
+    /* generic pane padding */
+    .pane { padding: 36px 18px; }
+    .origin { padding: 56px 18px; }
+    .demo { padding: 56px 18px; }
+    .install { padding: 56px 18px; }
+    .footer { padding: 48px 18px 32px; }
+
+    /* HERO */
+    .hero { padding: 28px 18px 56px; }
+    .boot { font-size: 11px; line-height: 1.7; }
+    .boot .line {
+      white-space: normal;     /* let lines wrap on phones */
+      word-break: break-word;
+    }
+    .boot .dim { display: none; } /* drop the trailing pid/port noise */
+    .headline { font-size: 32px; max-width: none; }
+    .sub, .sub-aside { max-width: none; }
+    .sub { font-size: 13.5px; margin-top: 18px; }
+    .sub-aside { font-size: 12px; padding: 12px 14px; margin-top: 14px; }
+    .cta-row { margin-top: 24px; gap: 10px; }
+    .cta-row .btn { padding: 10px 14px; font-size: 12px; }
+    .cta-row .scroll-tip { display: none; }
+    .mark-col { padding: 0; }
+    .mark-frame img { max-width: 240px; width: 100%; }
+
+    /* ORIGIN — quote */
+    .origin .quote-block { padding: 12px 0 12px 16px; }
+    .origin blockquote { font-size: 22px; max-width: none; }
+    .origin .quote-tag { font-size: 9.5px; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .origin .attrib { font-size: 11px; margin-top: 18px; }
+
+    /* ROLL — pinned section: stack the two panes vertically */
+    .roll { height: 900vh; min-height: 900vh; } /* more runway since we have 2 stacked panes */
+    .roll-stage {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto;
+      top: 36px;                                /* under the smaller mobile titlebar */
+      height: calc(100vh - 36px - 28px);
+    }
+    .roll-left, .roll-right {
+      padding: 18px 16px;
+      border-right: 0;
+    }
+    .roll-left { border-bottom: 1px solid var(--rule); }
+    .roll-head { font-size: 9.5px; letter-spacing: 0.18em; gap: 8px; }
+    .roll-cmd { font-size: 11px; margin: 10px 0 12px; }
+    .roll-stack { height: clamp(56px, 14vw, 80px); }
+    .roll-name { font-size: clamp(28px, 9vw, 44px); padding: 0 14px; }
+    .roll-meta { display: none; }              /* hide dossier dl on mobile */
+    .roll-ledger { padding-top: 10px; }
+    .ledger-head { font-size: 9px; letter-spacing: 0.12em; margin-bottom: 6px; }
+    .roll-ledger ul { grid-template-columns: 1fr; gap: 2px 12px; }
+    .roll-ledger li { font-size: 10px; gap: 8px; }
+    .roll-ledger li .why { font-size: 8.5px; letter-spacing: 0.08em; }
+
+    .kill-count {
+      align-self: flex-start;                   /* left-align on mobile */
+      font-size: 9px;
+      padding: 5px 10px;
+    }
+    .kill-count b { font-size: 12px; }
+
+    .verdict { padding: 10px 0; max-width: 100%; overflow: hidden; }
+    .verdict .stamp-frame {
+      padding: 12px 14px;
+      transform: rotate(-2deg);   /* gentler rotation so it stays in-bounds */
+    }
+    .roll-stage.is-us .verdict .stamp-frame { transform: rotate(2deg); }
+    .verdict .stamp-text { font-size: clamp(28px, 8vw, 40px); letter-spacing: -0.01em; }
+    .verdict .stamp-label { font-size: 10px; }
+    .verdict .stamp-sub { font-size: 10px; }
+
+    .receipt { padding: 12px 12px 10px; }
+    .receipt-head { font-size: 8.5px; letter-spacing: 0.12em; margin-bottom: 8px; }
+    .receipt-list li { font-size: 10.5px; }
+    .receipt-total { font-size: 10px; padding-top: 6px; }
+    .receipt-total b { font-size: 14px; }
+
+    /* DEMO / phone mock */
+    .demo h2 { font-size: 30px; max-width: none; }
+    .demo p { font-size: 13.5px; max-width: none; }
+    .demo .baseline { font-size: 11px; max-width: none; }
+    .phone { transform: none; max-width: 320px; margin: 0 auto; }
+
+    /* INSTALL */
+    .install h2 { font-size: 30px; max-width: none; }
+    .term { font-size: 11px; }
+    .term .body { padding: 12px 14px; }
+    .term .ln { font-size: 11px; line-height: 1.7; flex-wrap: wrap; }
+    .term .cmd { word-break: break-all; }
+    .copyrow { flex-direction: column; gap: 10px; align-items: flex-start; font-size: 11px; }
+
+    /* FOOTER */
+    .footer .sig { width: 56px; height: 56px; }
+    .footer p { font-size: 14px; max-width: none; padding: 0 4px; }
+    .footer .cta { font-size: 12px; padding: 10px 14px; }
+    .colophon { flex-direction: column; gap: 6px; font-size: 10px; align-items: center; }
+
+    /* TICKER — keep it but tiny and single-segment-ish */
+    .ticker { padding: 6px 10px; font-size: 9.5px; gap: 10px; }
+    .ticker .seg:nth-child(n+3) { display: none; } /* drop later segments */
+    .ticker .bar { display: none; }
+  }
+
+  /* very narrow / older phones */
+  @media (max-width: 380px) {
+    .pane, .origin, .demo, .install { padding-left: 14px; padding-right: 14px; }
+    .headline { font-size: 28px; }
+    .roll-name { font-size: clamp(24px, 8vw, 36px); }
+    .verdict .stamp-text { font-size: clamp(28px, 8vw, 40px); }
   }
 </style>
 </head>
