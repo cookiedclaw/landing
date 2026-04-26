@@ -167,6 +167,18 @@
     color: var(--amber);
     font-weight: 500;
   }
+  .tagline {
+    margin-top: 14px;
+    font-family: "IBM Plex Mono", var(--mono);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(14px, 1.6vw, 18px);
+    line-height: 1.4;
+    color: var(--fg-2);
+    max-width: 42ch;
+    letter-spacing: -0.005em;
+  }
+  .tagline::before { content: "// "; color: var(--amber); font-style: normal; }
   .sub {
     margin-top: 22px;
     color: var(--fg-2);
@@ -1318,6 +1330,10 @@
         <h1 class="headline">
           OpenClaw, but Claude&nbsp;Code <em>is the harness.</em>
         </h1>
+
+        <p class="tagline">
+          The harness you already have. Not another one.
+        </p>
 
         <p class="sub">
           A Telegram-resident agent that lives <b>inside</b> your Claude&nbsp;Code session
