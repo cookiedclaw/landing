@@ -1310,7 +1310,7 @@
     <div class="path">~/<span class="a">cookiedclaw</span> — claude code, in your pocket</div>
     <div class="nav">
       <a href="#install">install</a>
-      <a href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">github ↗</a>
+      <a href="https://github.com/cookiedclaw/cookiedclaw-claude-code" target="_blank" rel="noopener">github ↗</a>
     </div>
   </div>
 
@@ -1319,7 +1319,7 @@
     <div class="row">
       <div>
         <div class="boot" id="boot">
-          <div class="line"><span class="ok"><span class="check">ok</span></span> plugin <span class="a">cookiedclaw@cookiedclaw</span> loaded            <span class="dim">··············  dev channel</span></div>
+          <div class="line"><span class="ok"><span class="check">ok</span></span> plugin <span class="a">cookiedclaw@cookiedclaw-claude-code</span> loaded            <span class="dim">··············  dev channel</span></div>
           <div class="line"><span class="ok"><span class="check">ok</span></span> mcp server <span class="a">telegram-channel</span> on stdio        <span class="dim">··············  bun · 14 modules</span></div>
           <div class="line"><span class="ok"><span class="check">ok</span></span> grammy bot @cookiedclaw_bot polling           <span class="dim">··············  long-poll</span></div>
           <div class="line"><span class="ok"><span class="check">ok</span></span> tool-progress hook bound                      <span class="dim">··············  localhost:53117</span></div>
@@ -1353,7 +1353,7 @@
           <a class="btn amber" href="#install">
             <span>$ install</span><span class="arrow">→</span>
           </a>
-          <a class="btn" href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">
+          <a class="btn" href="https://github.com/cookiedclaw/cookiedclaw-claude-code" target="_blank" rel="noopener">
             <span>github ↗</span>
           </a>
           <span class="scroll-tip">scroll ↓</span>
@@ -1542,11 +1542,11 @@
         <div class="body">
           <div class="ln">
             <span class="prompt">$</span>
-            <span class="cmd">claude plugin marketplace add <span class="arg">cookiedclaw/cookiedclaw</span></span>
+            <span class="cmd">claude plugin marketplace add <span class="arg">cookiedclaw/cookiedclaw-claude-code</span></span>
           </div>
           <div class="ln">
             <span class="prompt">$</span>
-            <span class="cmd">claude plugin install <span class="arg">cookiedclaw@cookiedclaw</span></span>
+            <span class="cmd">claude plugin install <span class="arg">cookiedclaw@cookiedclaw-claude-code</span></span>
           </div>
           <div class="ln">
             <span class="prompt">$</span>
@@ -1554,7 +1554,7 @@
           </div>
           <div class="ln">
             <span class="prompt">$</span>
-            <span class="cmd">claude --dangerously-load-development-channels <span class="arg">plugin:cookiedclaw@cookiedclaw</span></span>
+            <span class="cmd">claude --dangerously-load-development-channels <span class="arg">plugin:cookiedclaw@cookiedclaw-claude-code</span></span>
           </div>
           <div class="ln">
             <span class="prompt">&gt;</span>
@@ -1578,8 +1578,8 @@
       That's the whole pitch. A plugin. A chat thread. Your own subscription,
       doing what you already pay it to do.
     </p>
-    <a class="cta" href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">
-      <span>github.com/cookiedclaw/cookiedclaw</span>
+    <a class="cta" href="https://github.com/cookiedclaw/cookiedclaw-claude-code" target="_blank" rel="noopener">
+      <span>github.com/cookiedclaw/cookiedclaw-claude-code</span>
       <span>↗</span>
     </a>
     <div class="colophon">
@@ -1816,10 +1816,10 @@
     const btn = document.getElementById('copyBtn');
     if (!btn) return;
     const cmds =
-      'claude plugin marketplace add cookiedclaw/cookiedclaw\n' +
-      'claude plugin install cookiedclaw@cookiedclaw\n' +
+      'claude plugin marketplace add cookiedclaw/cookiedclaw-claude-code\n' +
+      'claude plugin install cookiedclaw@cookiedclaw-claude-code\n' +
       'mkdir -p ~/cookiedclaw && cd ~/cookiedclaw\n' +
-      'claude --dangerously-load-development-channels plugin:cookiedclaw@cookiedclaw\n';
+      'claude --dangerously-load-development-channels plugin:cookiedclaw@cookiedclaw-claude-code\n';
     btn.addEventListener('click', () => {
       navigator.clipboard?.writeText(cmds).then(() => {
         const old = btn.textContent;
