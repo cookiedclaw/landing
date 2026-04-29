@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>cookiedclaw — privacy</title>
+<link rel="icon" type="image/png" href="assets/cookie-mark.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:      oklch(0.16 0.012 60);
+    --bg-2:    oklch(0.20 0.014 60);
+    --bg-3:    oklch(0.13 0.010 60);
+    --fg:      oklch(0.92 0.012 80);
+    --fg-2:    oklch(0.74 0.012 75);
+    --fg-3:    oklch(0.56 0.012 70);
+    --rule:    oklch(0.30 0.014 60);
+    --amber:   oklch(0.82 0.16 78);
+    --green:   oklch(0.78 0.16 145);
+    --mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-image:
+      radial-gradient(ellipse at 50% -10%, oklch(0.22 0.014 60), transparent 70%),
+      repeating-linear-gradient(
+        to bottom,
+        oklch(0 0 0 / 0) 0px,
+        oklch(0 0 0 / 0) 2px,
+        oklch(0 0 0 / 0.18) 3px,
+        oklch(0 0 0 / 0) 4px
+      );
+    background-attachment: fixed;
+  }
+
+  ::selection { background: var(--amber); color: var(--bg); }
+
+  .a   { color: var(--amber); }
+  .dim { color: var(--fg-3); }
+  .mid { color: var(--fg-2); }
+
+  .window {
+    max-width: 820px;
+    margin: 32px auto;
+    background: var(--bg);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px oklch(0 0 0 / 0.4),
+      0 60px 140px -40px oklch(0 0 0 / 0.7);
+    position: relative;
+  }
+  .titlebar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--bg-3);
+    border-bottom: 1px solid var(--rule);
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    font-size: 11.5px;
+    color: var(--fg-3);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+  }
+  .lights { display: flex; gap: 6px; margin-right: 10px; }
+  .lights span {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: oklch(0.4 0.014 60);
+  }
+  .lights span:nth-child(1) { background: oklch(0.6 0.18 30); }
+  .lights span:nth-child(2) { background: oklch(0.78 0.16 80); }
+  .lights span:nth-child(3) { background: oklch(0.7 0.16 145); }
+  .titlebar .path { flex: 1; text-align: center; color: var(--fg-2); letter-spacing: 0.02em; }
+  .titlebar .nav { display: flex; gap: 18px; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .titlebar .nav a { color: var(--fg-2); text-decoration: none; transition: color .2s; }
+  .titlebar .nav a:hover { color: var(--amber); }
+
+  main { padding: 48px clamp(24px, 4vw, 56px) 64px; }
+
+  .crumb {
+    font-size: 11.5px;
+    color: var(--fg-3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin: 0 0 6px;
+    color: var(--fg);
+  }
+  h1 em { font-style: italic; color: var(--amber); font-weight: 500; }
+  .stamp {
+    color: var(--fg-3);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    margin-bottom: 36px;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--amber);
+    margin: 36px 0 12px;
+    letter-spacing: -0.005em;
+  }
+  h2::before { content: "// "; color: var(--fg-3); font-style: normal; }
+
+  p { color: var(--fg-2); margin: 12px 0; max-width: 64ch; }
+  p b { color: var(--fg); font-weight: 500; }
+
+  ul {
+    color: var(--fg-2);
+    padding-left: 20px;
+    margin: 12px 0;
+    max-width: 64ch;
+  }
+  ul li { margin: 6px 0; }
+  ul li::marker { color: var(--amber); }
+
+  a { color: var(--amber); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--fg); }
+
+  code {
+    background: var(--bg-2);
+    border: 1px solid var(--rule);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: var(--fg);
+  }
+
+  .aside {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-left: 2px solid var(--amber);
+    background: oklch(from var(--amber) 0.20 c h / 0.18);
+    color: var(--fg-2);
+    font-size: 13px;
+    line-height: 1.55;
+    max-width: 64ch;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 40px 0 28px;
+  }
+
+  .colophon {
+    color: var(--fg-3);
+    font-size: 11.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    justify-content: space-between;
+  }
+  .colophon a { color: var(--fg-3); }
+  .colophon a:hover { color: var(--amber); }
+
+  @media (max-width: 720px) {
+    .window { margin: 0; border-radius: 0; border-left: none; border-right: none; }
+    .titlebar { border-radius: 0; }
+    .titlebar .nav { display: none; }
+    main { padding: 36px 18px 56px; }
+  }
+</style>
+</head>
+
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="lights"><span></span><span></span><span></span></div>
+    <div class="path"><span class="dim">~/cookiedclaw/</span><span class="a">privacy</span><span class="dim">.md</span></div>
+    <div class="nav">
+      <a href="index.html">← home</a>
+      <a href="https://github.com/cookiedclaw/cookiedclaw-claude-code" target="_blank" rel="noopener">github ↗</a>
+    </div>
+  </div>
+
+  <main>
+    <div class="crumb">06 · privacy</div>
+    <h1>privacy <em>policy</em></h1>
+    <div class="stamp">last updated 2026-04-29</div>
+
+    <p>
+      cookiedclaw is open-source software you self-host. There is no central
+      cookiedclaw server that collects, stores, or processes your data. This
+      page covers two things: what this website does with visitors, and what
+      the cookiedclaw software does with data when <b>you</b> run it.
+    </p>
+
+    <h2>this website</h2>
+    <p>
+      This landing page is static HTML. It loads two fonts from Google Fonts
+      (<code>fonts.googleapis.com</code>, <code>fonts.gstatic.com</code>) — those
+      requests are subject to Google's privacy policy. There are no analytics
+      scripts, no tracking pixels, no cookies set by this page, and no
+      first-party fingerprinting.
+    </p>
+    <p>
+      The site is hosted on Vercel. Vercel may log standard request metadata
+      (IP address, user agent, timestamp) for operational and abuse-prevention
+      purposes per their own policy. We do not access or correlate those logs.
+    </p>
+
+    <h2>the cookiedclaw software</h2>
+    <p>
+      When you install and run cookiedclaw, it runs entirely on infrastructure
+      you control — your Raspberry Pi, server, or laptop. Nothing in the
+      runtime phones home to the project's maintainers. Specifically:
+    </p>
+    <ul>
+      <li>
+        <b>Telegram</b> — the bot connects to Telegram's Bot API to send and
+        receive messages on your behalf. Whatever you and your paired users
+        type to the bot is delivered to Telegram per their own
+        <a href="https://telegram.org/privacy" target="_blank" rel="noopener">privacy policy</a>.
+      </li>
+      <li>
+        <b>Anthropic</b> — Claude Code runs against Anthropic's API. Prompts,
+        attachments, and responses are processed under Anthropic's
+        <a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">privacy policy</a>
+        and the terms of your own Claude account.
+      </li>
+      <li>
+        <b>Local storage</b> — chat state, paired-user IDs, downloaded
+        attachments, conversation history, and supervisor logs live on your
+        machine under <code>~/.cookiedclaw/</code> and Claude Code's own data
+        directory. The cookiedclaw maintainers cannot see any of this.
+      </li>
+      <li>
+        <b>Update check</b> — on each MCP session init the gateway pings
+        <code>api.github.com/repos/cookiedclaw/cookiedclaw/releases/latest</code>
+        once an hour to check for a newer release. GitHub receives standard
+        request metadata; cookiedclaw does not.
+      </li>
+      <li>
+        <b>Telemetry</b> — none. There is no error reporting, no crash
+        upload, no usage metrics endpoint operated by the project.
+      </li>
+    </ul>
+
+    <h2>operator responsibilities</h2>
+    <p>
+      If you run cookiedclaw and let other people pair to your bot, you are
+      the data controller for their messages and metadata under most privacy
+      regimes. You are responsible for telling paired users what data you
+      retain locally, how long, and what third-party services (Telegram,
+      Anthropic, any MCP servers you wire in) the bot routes their messages
+      through.
+    </p>
+    <div class="aside">
+      cookiedclaw does not offer a hosted service. If someone offers you a
+      cookiedclaw-as-a-service, that is not us — ask them for their own
+      privacy policy.
+    </div>
+
+    <h2>third parties referenced from the site</h2>
+    <p>
+      The landing links to GitHub, Anthropic's documentation, and a handful
+      of comparison vendors. Following those links sends you to the linked
+      site under their own terms. We do not embed any third-party iframes,
+      pixels, or share buttons.
+    </p>
+
+    <h2>contact</h2>
+    <p>
+      Questions, complaints, or takedown requests:
+      open an issue at
+      <a href="https://github.com/cookiedclaw/cookiedclaw" target="_blank" rel="noopener">github.com/cookiedclaw/cookiedclaw</a>.
+    </p>
+
+    <hr />
+    <div class="colophon">
+      <span>cookiedclaw · mmxxvi</span>
+      <a href="index.html">← back to home</a>
+    </div>
+  </main>
+</div>
+</body>
+</html>
